@@ -12,25 +12,21 @@ interface PokemonDetail {
 
 function Home() {
   const [pokemons, setPokemons] = useState<PokemonDetail[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   const getPokemons = () => {
     axios
       .get("https://pokeapi.co/api/v2/pokemon?limit=150")
       .then((res) => {
-        const results = res.data.results; // array com { name, url }
-        // Faz uma requisição para cada Pokémon para pegar seus detalhes
+        const results = res.data.results;
         Promise.all(
-          results.map((pokemon: { name: string; url: string }) =>
-            axios.get(pokemon.url)
-          )
+          results.map((pokemon: { name: string; url: string }) => axios.get(pokemon.url))
         )
           .then((responses) => {
             const details = responses.map((response) => {
               const data = response.data;
-              // Tenta pegar a imagem da arte oficial; se não existir, usa o sprite padrão
               const image =
-                data.sprites.other["official-artwork"].front_default ||
-                data.sprites.front_default;
+                data.sprites.other["official-artwork"].front_default || data.sprites.front_default;
               const types = data.types.map((t: any) => t.type.name);
               return {
                 name: data.name,
@@ -49,20 +45,25 @@ function Home() {
     getPokemons();
   }, []);
 
+  // Filtramos os Pokémon pelo nome
+  const filteredPokemons = pokemons.filter((pokemon) =>
+    pokemon.name.toLowerCase().includes(searchTerm)
+  );
+
   return (
     <div>
-      <Navbar />
+      <Navbar onSearch={setSearchTerm} />
       <Container maxWidth="lg">
         <Grid container spacing={2}>
-          {pokemons.map((pokemon) => (
-            <Grid item xs={3} key={pokemon.name}>
-              <PokemonCard
-                name={pokemon.name}
-                image={pokemon.image}
-                types={pokemon.types}
-              />
-            </Grid>
-          ))}
+          {filteredPokemons.length > 0 ? (
+            filteredPokemons.map((pokemon) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={pokemon.name}>
+                <PokemonCard name={pokemon.name} image={pokemon.image} types={pokemon.types} />
+              </Grid>
+            ))
+          ) : (
+            <p style={{ textAlign: "center", width: "100%" }}>Nenhum Pokémon encontrado</p>
+          )}
         </Grid>
       </Container>
     </div>
